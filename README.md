@@ -1,4 +1,4 @@
-# wp-hosting-lab
+# wp-hosting
 
 Production-style WordPress hosting stack: Nginx/Apache front-end variants, MariaDB, backup and migration automation.
 
@@ -33,7 +33,7 @@ docker compose -f docker-compose.apache.yml up -d
 ./scripts/migrate.sh user@host /opt/wp-hosting-lab new-domain.com
 ```
 
-Backups land in `backups/<timestamp>/` as `db.sql.gz` + `files.tar.gz`.
+Backups land in `backups/YYYY-MM-DD_hh-mm-ss/` as `db.sql.gz` + `files.tar.gz`.
 
 Cron example:
 
