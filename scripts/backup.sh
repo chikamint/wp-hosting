@@ -22,11 +22,18 @@ $COMPOSE exec -T db mariadb-dump \
   --single-transaction \
   "$DB_NAME" | gzip > "$DEST/db.sql.gz"
 
-# Archive the docroot volume via a throwaway read-only container
+# Resolve the docroot volume from the running container — folder renames must not break backups
+WP_VOLUME="$(docker inspect "$($COMPOSE ps -q wordpress)" --format '{{range .Mounts}}{{if eq .Destination "/var/www/html"}}{{.Name}}{{end}}{{end}}')"
+[ -n "$WP_VOLUME" ] || { echo "[FAIL] wp_data volume not found — is the stack up?" >&2; exit 1; }
+
 docker run --rm \
-  -v wp-hosting-lab_wp_data:/var/www/html:ro \
+  -v "$WP_VOLUME":/var/www/html:ro \
   -v "$DEST":/backup \
   alpine tar czf /backup/files.tar.gz -C /var/www/html .
+
+# An empty archive is a failed backup — fail loudly, not silently
+SIZE=$(stat -c%s "$DEST/files.tar.gz")
+[ "$SIZE" -lt 10000 ] && { echo "[FAIL] files.tar.gz is suspiciously small ($SIZE bytes) — check the volume" >&2; exit 1; }
 
 find "$BACKUP_DIR" -mindepth 1 -maxdepth 1 -type d -mtime +$RETENTION_DAYS -exec rm -rf {} +
 

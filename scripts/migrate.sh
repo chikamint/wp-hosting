@@ -34,8 +34,12 @@ set -a; . ./.env; set +a
 
 docker compose up -d --wait
 
+# Resolve the docroot volume from the running container
+WP_VOLUME="$(docker inspect "$(docker compose ps -q wordpress)" --format '{{range .Mounts}}{{if eq .Destination "/var/www/html"}}{{.Name}}{{end}}{{end}}')"
+[ -n "$WP_VOLUME" ] || { echo "[FAIL] wp_data volume not found"; exit 1; }
+
 docker run --rm \
-  -v wp-hosting-lab_wp_data:/var/www/html \
+  -v "$WP_VOLUME":/var/www/html \
   -v "$TARGET_DIR/$BACKUP":/backup:ro \
   alpine sh -c 'rm -rf /var/www/html/* && tar xzf /backup/files.tar.gz -C /var/www/html'
 
